@@ -27,9 +27,23 @@
       "deliveryStatus": "delivered",
       "amount": 29.0,
       "suggestedAction": "partial_refund"
+    },
+    {
+      "orderId": "FOOD-1003",
+      "issueType": "spilled_drink",
+      "deliveryStatus": "delivered",
+      "amount": 19.0,
+      "suggestedAction": "full_refund"
+    },
+    {
+      "orderId": "FOOD-1005",
+      "issueType": "wrong_item",
+      "deliveryStatus": "delivered",
+      "amount": 35.0,
+      "suggestedAction": "partial_refund_plus_coupon"
     }
   ],
-  "orderIds": ["FOOD-1002"],
+  "orderIds": ["FOOD-1002", "FOOD-1003", "FOOD-1005"],
   "resolutionPolicyContext": {
     "maxAutoRefundPerOrder": 12.0,
     "allowCouponForLateDelivery": true
