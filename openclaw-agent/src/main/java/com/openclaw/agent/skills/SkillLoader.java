@@ -19,8 +19,11 @@ public class SkillLoader {
     /** The skill definition file that must exist in each skill directory. */
     private static final String SKILL_FILE = "SKILL.md";
 
-    /** Default workspace skills sub-directory. */
-    private static final String WORKSPACE_SKILLS_DIR = ".openclaw/skills";
+    /** Preferred workspace skills sub-directory. */
+    private static final String WORKSPACE_SKILLS_DIR = "skills";
+
+    /** Legacy workspace skills sub-directory retained for compatibility. */
+    private static final String LEGACY_WORKSPACE_SKILLS_DIR = ".openclaw/skills";
 
     // =========================================================================
     // Single-directory loading
@@ -35,16 +38,25 @@ public class SkillLoader {
      * @return list of loaded skills (never null)
      */
     public static List<Skill> loadSkillsFromDir(Path dir, SkillSource source) {
-        if (dir == null || !Files.isDirectory(dir)) {
+        if (dir == null) {
+            return List.of();
+        }
+
+        if (!Files.isDirectory(dir)) {
+            logTrace("Skills trace scanDir={} source={} exists=false", dir, source.label());
             return List.of();
         }
 
         List<Skill> skills = new ArrayList<>();
+        List<String> visitedDirs = new ArrayList<>();
+        List<String> matchedSkillFiles = new ArrayList<>();
 
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path child : stream) {
                 if (!Files.isDirectory(child))
                     continue;
+
+                visitedDirs.add(child.getFileName().toString());
 
                 Path skillFile = child.resolve(SKILL_FILE);
                 if (!Files.isRegularFile(skillFile))
@@ -64,6 +76,7 @@ public class SkillLoader {
                             skillFile.toAbsolutePath().toString(),
                             child.toAbsolutePath().toString(),
                             body));
+                    matchedSkillFiles.add(skillFile.toAbsolutePath().toString());
                 } catch (IOException e) {
                     log.warn("Failed to read skill file {}: {}", skillFile, e.getMessage());
                 }
@@ -71,6 +84,13 @@ public class SkillLoader {
         } catch (IOException e) {
             log.warn("Failed to scan skills directory {}: {}", dir, e.getMessage());
         }
+
+        logTrace("Skills trace scanDir={} source={} visitedDirs={} matchedSkillFiles={} loadedSkills={}",
+                dir.toAbsolutePath(),
+                source.label(),
+                visitedDirs,
+                matchedSkillFiles,
+                skills.stream().map(Skill::name).toList());
 
         // Sort by name for deterministic ordering
         skills.sort(Comparator.comparing(Skill::name));
@@ -106,7 +126,13 @@ public class SkillLoader {
             loadAndAppend(entries, Path.of(managedSkillsDir), SkillSource.MANAGED);
         }
 
-        // 3. Workspace skills
+        // 3. Legacy workspace skills
+        if (workspaceDir != null) {
+            Path legacyWsSkills = Path.of(workspaceDir, LEGACY_WORKSPACE_SKILLS_DIR);
+            loadAndAppend(entries, legacyWsSkills, SkillSource.WORKSPACE);
+        }
+
+        // 4. Preferred workspace skills
         if (workspaceDir != null) {
             Path wsSkills = Path.of(workspaceDir, WORKSPACE_SKILLS_DIR);
             loadAndAppend(entries, wsSkills, SkillSource.WORKSPACE);
@@ -245,14 +271,37 @@ public class SkillLoader {
      */
     public static String resolveSkillsPromptForRun(
             String workspaceDir, OpenClawConfig config) {
+        return resolveSkillSnapshotForRun(workspaceDir, config).prompt();
+    }
+
+    public static SkillSnapshot resolveSkillSnapshotForRun(
+            String workspaceDir, OpenClawConfig config) {
         List<SkillEntry> entries = loadSkillEntries(workspaceDir);
         List<SkillEntry> filtered = filterSkillEntries(entries, config);
-        return buildSkillsPrompt(filtered);
+        return buildSkillSnapshot(dedupeByName(filtered));
     }
 
     // =========================================================================
     // Helpers
     // =========================================================================
+
+    private static List<SkillEntry> dedupeByName(List<SkillEntry> entries) {
+        if (entries == null || entries.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, SkillEntry> deduped = new LinkedHashMap<>();
+        for (SkillEntry entry : entries) {
+            if (entry == null || entry.skill() == null || entry.skill().name() == null) {
+                continue;
+            }
+            // Later sources override earlier ones, matching bundled -> managed ->
+            // workspace precedence.
+            deduped.remove(entry.skill().name());
+            deduped.put(entry.skill().name(), entry);
+        }
+        return new ArrayList<>(deduped.values());
+    }
 
     private static String readSkillContent(String filePath) {
         try {
@@ -261,5 +310,19 @@ public class SkillLoader {
             log.warn("Failed to read skill file {}: {}", filePath, e.getMessage());
             return "";
         }
+    }
+
+    private static void logTrace(String format, Object... args) {
+        if (!isSkillsTraceEnabled()) {
+            return;
+        }
+        log.warn(format, args);
+    }
+
+    private static boolean isSkillsTraceEnabled() {
+        String env = System.getenv("OPENCLAW_SKILLS_TRACE");
+        return env == null || env.isBlank()
+                || "true".equalsIgnoreCase(env)
+                || "1".equals(env);
     }
 }

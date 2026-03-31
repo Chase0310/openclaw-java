@@ -13,6 +13,7 @@ import com.openclaw.agent.models.ModelProvider;
 import com.openclaw.agent.models.ModelProviderRegistry;
 import com.openclaw.agent.prompt.SystemPromptBuilder;
 import com.openclaw.agent.skills.SkillLoader;
+import com.openclaw.agent.skills.SkillTypes;
 import com.openclaw.agent.tools.AgentTool;
 import com.openclaw.agent.tools.ToolRegistry;
 import com.openclaw.common.config.OpenClawConfig;
@@ -308,8 +309,16 @@ public class AgentRunner {
         String skillsPrompt = null;
         if (context.getConfig() != null) {
             try {
-                skillsPrompt = SkillLoader.resolveSkillsPromptForRun(
+                SkillTypes.SkillSnapshot skillSnapshot = SkillLoader.resolveSkillSnapshotForRun(
                         context.getCwd(), context.getConfig());
+                skillsPrompt = skillSnapshot.prompt();
+                context.setResolvedSkills(skillSnapshot.resolvedSkills());
+                if (context.isSkillsTraceEnabled()) {
+                    log.info("Skills trace runId={} loadedSkills={} cwd={}",
+                            context.getRunId(),
+                            skillSnapshot.resolvedSkills().stream().map(SkillTypes.Skill::name).toList(),
+                            context.getCwd());
+                }
             } catch (Exception e) {
                 log.debug("Skills prompt generation failed: {}", e.getMessage());
             }
@@ -543,6 +552,8 @@ public class AgentRunner {
             return AgentTool.ToolResult.fail("Unknown tool: " + toolUse.getName());
         }
 
+        logSkillTraceForTool(context, toolUse.getName());
+
         // Plugin hook: before_tool_call — can modify params or block
         PluginTypes.BeforeToolCallResult beforeResult = pluginHookRunner.runBeforeToolCall(
                 PluginTypes.BeforeToolCallEvent.builder()
@@ -633,6 +644,30 @@ public class AgentRunner {
         }
     }
 
+    private void logSkillTraceForTool(AgentRunContext context, String toolName) {
+        if (!context.isSkillsTraceEnabled() || toolName == null || toolName.isBlank()) {
+            return;
+        }
+        List<String> matchedSkills = findSkillsReferencingTool(context.getResolvedSkills(), toolName);
+        log.info("Skills trace runId={} tool={} matchedSkills={}",
+                context.getRunId(),
+                toolName,
+                matchedSkills);
+    }
+
+    private List<String> findSkillsReferencingTool(List<SkillTypes.Skill> skills, String toolName) {
+        if (skills == null || skills.isEmpty() || toolName == null || toolName.isBlank()) {
+            return List.of();
+        }
+        String needle = "`" + toolName + "`";
+        return skills.stream()
+                .filter(skill -> skill != null && skill.content() != null)
+                .filter(skill -> skill.content().contains(needle) || skill.content().contains(toolName))
+                .map(SkillTypes.Skill::name)
+                .distinct()
+                .toList();
+    }
+
     // --- Data types ---
 
     @Data
@@ -662,7 +697,10 @@ public class AgentRunner {
         private int maxTurns = 25;
         private double temperature;
         private OpenClawConfig config;
+        private List<SkillTypes.Skill> resolvedSkills;
         private volatile boolean cancelled;
+        @Builder.Default
+        private boolean skillsTraceEnabled = isSkillsTraceEnabledByDefault();
         /** Enable automatic compaction when history nears context limit. */
         @Builder.Default
         private boolean compactionEnabled = false;
@@ -670,6 +708,13 @@ public class AgentRunner {
         private AgentEventListener listener = NOOP_LISTENER;
 
         public static final AgentEventListener NOOP_LISTENER = AgentRunner.NOOP_LISTENER;
+
+        private static boolean isSkillsTraceEnabledByDefault() {
+            String env = System.getenv("OPENCLAW_SKILLS_TRACE");
+            return env == null || env.isBlank()
+                    || "true".equalsIgnoreCase(env)
+                    || "1".equals(env);
+        }
     }
 
     @Data

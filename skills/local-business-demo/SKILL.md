@@ -1,5 +1,4 @@
 ---
-name: local-business-demo
 description: 通过 local_business_lookup 工具处理本地客户与订单问题
 ---
 
