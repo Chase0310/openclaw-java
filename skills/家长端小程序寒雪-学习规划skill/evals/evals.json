@@ -1,0 +1,61 @@
+{
+  "skill_name": "hanxue-learning-plan",
+  "evals": [
+    {
+      "id": 1,
+      "name": "targeted-math-not-mastered",
+      "prompt": "你是寒雪老师，小鉴的AI家教老师。小鉴7年级。\n\nmode=targeted，sourceScene=null。\n当前报告：数学一对一辅学营，课次=一元二次方程。判别式综合应用课后'可能掌握'（做了4道对2道）。\nlearningPlanKB匹配到：学情状态='学了但做题不熟练'，推荐路径='做题→订正'，推荐应用=['数学精准学','错题本']。\n\n家长点了选项条：「判别式该怎么练？」",
+      "expected_output": "推荐组合路径（精准学做题+错题本订正），不只推单个应用。区分上课和做题。≤200字。不承诺效果。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "targeted-math-not-understood",
+      "prompt": "你是寒雪老师，小鉴的AI家教老师。小鉴7年级。\n\nmode=targeted，sourceScene=null。\n当前报告：数学一对一辅学营。韦达定理课后'未掌握'（做了3道对1道）。\nlearningPlanKB匹配到：学情状态='知识点没学懂'，推荐路径='上课→做题→订正'，推荐应用=['数学一对一(辅学营)','数学精准学','错题本']。\n\n家长点了选项条：「韦达定理该怎么练？」",
+      "expected_output": "推荐先在一对一上课（讲知识），再去精准学做题（巩固），做错去错题本订正。3步组合路径。≤200字。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "targeted-all-mastered-fallback",
+      "prompt": "你是寒雪老师，超超的AI家教老师。超超3年级。\n\nmode=targeted，sourceScene=null。\n当前报告：语文一对一，课程=大青树下的小学。8个PT全部通关，所有环节完成。\nlearningPlanKB匹配到：学情状态='全部掌握'，推荐路径='续学'。\n\n家长点了选项条：「接下来怎么学比较好？」",
+      "expected_output": "全部掌握时兜底：'这节课的内容都掌握得不错，可以按计划继续下一节课啦'。≤200字。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "global-multi-subject",
+      "prompt": "你是寒雪老师，天天的AI家教老师。天天9年级。\n\nmode=global，sourceScene=null，currentReportContext=null。\n近7天学情摘要：数学薄弱知识点=['判别式','韦达定理']，未订正错题3道。语文薄弱知识点=['文章主旨理解']。英语无薄弱。\nlearningPlanKB匹配到多条推荐。\n\n家长打字问：「最近孩子该怎么安排学习？」",
+      "expected_output": "全局模式：最多推荐2-3个学科。优先推有错题的数学（先订正再巩固），再推语文。不一口气说完。≤200字。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "gentle-mode-from-C",
+      "prompt": "你是寒雪老师，豆豆的AI家教老师。豆豆2年级。\n\nmode=targeted，sourceScene='C'。emotion_detected=true。\nlearningPlanKB匹配到：学情状态='E·温和版'，推荐路径='轻量碎片型'，推荐应用=['计算训练','背单词','品味古诗']，注意事项=['不推荐系统上课','不给压力']。\n\n家长点了出口选项：「可以试试什么帮他找回兴趣？」",
+      "expected_output": "温和版：推荐轻量碎片型应用（计算训练等），每次5分钟。不推荐一对一上课。语气温和不给压力。≤200字。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "grade-1-2-no-jingzhunxue",
+      "prompt": "你是寒雪老师，果果的AI家教老师。果果1年级。\n\nmode=targeted，sourceScene=null。\n当前报告类型=看图写话。\nlearningPlanKB注意事项=['1-2年级没有数学精准学','1-2年级没有数学辅学营']。\n\n家长点了选项条：「怎么让他写得更好？」",
+      "expected_output": "1-2年级看图写话走E·温和版。不推荐精准学（不存在）。推荐轻量练习。≤200字。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "highschool-physics-targeted",
+      "prompt": "你是寒雪老师，安安的AI家教老师。安安高一。\n\nmode=targeted，sourceScene=null。\n当前报告：高中全科一对一，学科=物理。知识点'牛顿第二定律应用'掌握状态=薄弱（正确率25%）。\nlearningPlanKB匹配到：推荐路径='上课→做题'，推荐应用=['物理一对一','错题本']。注意事项=['高中物理没有独立精准学']。\n\n家长点了选项条：「牛顿第二定律该怎么练？」",
+      "expected_output": "推荐在一对一里重新学+错题本订正。不推荐精准学（高中物理没有）。≤200字。",
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "daily-report-targeted",
+      "prompt": "你是寒雪老师，小鉴的AI家教老师。小鉴7年级。\n\nmode=targeted，sourceScene=null。\n当前报告：数学学情日报。重点关注知识点=[{PT名:'韦达定理',类型:'未掌握',策略:'建议优先学习'},{PT名:'十字相乘法',类型:'未掌握',策略:'建议优先学习'}]。错题本待订正2道。\nlearningPlanKB匹配到多条推荐。\n\n家长点了选项条：「接下来怎么学比较好？」",
+      "expected_output": "基于日报的重点关注知识点推荐。先订正错题，再推荐辅学营+精准学组合路径。≤200字。",
+      "files": []
+    }
+  ]
+}

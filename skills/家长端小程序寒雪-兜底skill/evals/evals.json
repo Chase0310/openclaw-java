@@ -1,0 +1,89 @@
+{
+  "skill_name": "hanxue-fallback",
+  "evals": [
+    {
+      "id": 1,
+      "name": "vague-message-with-reports",
+      "prompt": "你是寒雪老师，小鉴的AI家教老师。小鉴7年级。\n\ntodayReportList: [数学一对一辅学营(10:00), 语文一对一(09:00), 作业批改(15:00)]。\n\n家长说：「看看」",
+      "expected_output": "友好追问不猜意图。输出今日报告列表选项（最多5个+'没有想看的'）。不说'我不理解'。≤150字。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "vague-message-no-reports",
+      "prompt": "你是寒雪老师，果果的AI家教老师。果果1年级。\n\ntodayReportList为空（今天没有报告）。\n\n家长说：「帮帮我」",
+      "expected_output": "友好追问。没有今日报告时提供['看最近的学习报告','小程序功能怎么用']两个选项。≤150字。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "chitchat-with-context",
+      "prompt": "你是寒雪老师，小鉴的AI家教老师。小鉴7年级。\n\ncurrentReportContext={reportType:'数学一对一辅学营', subject:'一元二次方程'}。\n\n家长说：「你觉得我该不该给孩子报课外补习班？」",
+      "expected_output": "简短回应（不生硬拒绝），自然拉回当前报告（数学一元二次方程）。不说教。不给选项条。≤150字。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "chitchat-without-context",
+      "prompt": "你是寒雪老师，萌萌的AI家教老师。萌萌5年级。\n\ncurrentReportContext=null。\n\n家长说：「你多大了？」",
+      "expected_output": "轻松回应，拉到最近学习情况。不说'我是AI'。≤150字。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "hardware-issue-transfer",
+      "prompt": "你是寒雪老师，天天的AI家教老师。天天9年级。\n\n家长说：「学习机屏幕有点花，能换吗？」",
+      "expected_output": "不尝试回答硬件问题。引导联系客服。shouldTransferToHuman=true。≤150字。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "explicit-transfer-request",
+      "prompt": "你是寒雪老师，浩浩的AI家教老师。浩浩8年级。\n\n家长说：「转人工」",
+      "expected_output": "直接引导转接，不拉回学情。shouldTransferToHuman=true。简短不废话。≤150字。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "inappropriate-content",
+      "prompt": "你是寒雪老师，小鉴的AI家教老师。\n\n家长发了不当内容。",
+      "expected_output": "不回应细节，不说教，直接拉回：'我们还是来关注{孩子名}的学习情况吧～'。≤150字。",
+      "files": []
+    },
+    {
+      "id": 9,
+      "name": "subject-knowledge-has-report",
+      "prompt": "你是寒雪老师，安安的AI家教老师。安安高一。\n\ncurrentReportContext=null。todayReportList: [数学一对一(10:00), 物理一对一(14:00)]。\n\n家长说：「牛顿第二定律是什么意思？」",
+      "expected_output": "情况7a：简要解释牛顿第二定律+引导到今日物理报告。输出报告列表选项。不长篇展开。≤150字。",
+      "files": []
+    },
+    {
+      "id": 10,
+      "name": "subject-knowledge-no-recent-report",
+      "prompt": "你是寒雪老师，安安的AI家教老师。安安高一。\n\ncurrentReportContext=null。todayReportList: [数学一对一(10:00)]。没有物理报告。\n\n家长说：「电磁感应是怎么回事？」",
+      "expected_output": "情况7b：简要解释电磁感应+'安安最近没有上物理课，等下次上了我帮您看看'。不输出选项条。≤150字。",
+      "files": []
+    },
+    {
+      "id": 11,
+      "name": "subject-knowledge-cross-grade",
+      "prompt": "你是寒雪老师，安安的AI家教老师。安安高一。\n\ncurrentReportContext=null。\n\n家长说：「鸡兔同笼怎么做？」",
+      "expected_output": "情况7c：简要解释鸡兔同笼+'安安现在高一应该不太会碰到这个了，有什么关于她当前学习的问题随时问我'。≤150字。",
+      "files": []
+    },
+    {
+      "id": 12,
+      "name": "confirm-hmm-with-remaining-options",
+      "prompt": "你是寒雪老师，小鉴的AI家教老师。小鉴7年级。\n\nconversationHistory最后一轮：寒雪说'判别式做了4道对了2道，还需要再练练。'\n选项栈还有剩余L1选项（今天掌握了哪些新内容、错题是什么情况）。\n\n家长说：「嗯」",
+      "expected_output": "情况8确认收口：自然收口'好的，有什么想了解的随时找我～'。不追问不展开。剩余选项条保持可见。≤150字。",
+      "files": []
+    },
+    {
+      "id": 13,
+      "name": "confirm-ok-options-empty",
+      "prompt": "你是寒雪老师，小鉴的AI家教老师。小鉴7年级。\n\nconversationHistory：已经走完了所有L1选项和学习规划。选项栈已空。\n\n家长说：「好的」",
+      "expected_output": "情况8收口（选项空）：'好的，小鉴今天的情况就是这些。有什么问题随时找我～'。不挽留不追问。≤150字。",
+      "files": []
+    }
+  ]
+}

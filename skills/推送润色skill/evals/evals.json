@@ -1,0 +1,82 @@
+{
+  "skill_name": "hanxue-push-polish",
+  "evals": [
+    {
+      "id": 1,
+      "name": "math-3to9-with-weak",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=数学一对一辅学营\n课次名称=一元二次方程，学习时长=40分钟，总做题量=35，新掌握考点数=14，查出薄弱点数=2，奖杯能力标签=[]\nchildName=小鉴",
+      "expected_output": "≤100字。提课次名、时长、做题量、新掌握14个、还有2个需巩固。不说具体哪些知识点薄弱。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "chinese-update-not-first",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=语文一对一\n课程名称=大青树下的小学，学科=语文，报告形态=标准课堂型，是否首次上此lesson=false（之前通关3个），通关PT数=5，该lesson总PT数=8\nchildName=超超",
+      "expected_output": "≤100字。体现增量感'又通关了2个'。不说哪些没通关。不提PT/能力标签。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "highschool-physics-high-accuracy",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=高中全科一对一\n学科=物理，总学习时长=30分钟，答题量=20，正确率=0.85，新增掌握知识点数=5，未掌握知识点数=0\nchildName=安安",
+      "expected_output": "≤100字。正确率≥80%可以提。全部掌握强调正面。不说具体知识点。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "highschool-math-low-accuracy",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=高中全科一对一\n学科=数学，总学习时长=21分钟，答题量=35，正确率=0.405，新增掌握知识点数=8，未掌握知识点数=20\nchildName=安安",
+      "expected_output": "≤100字。正确率<60%不直接报数字。说'还有一些需要关注'。不说具体知识点。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "homework-some-wrong",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=作业批改\n批改数=8，答对=6，答错=2\nchildName=浩浩",
+      "expected_output": "≤100字。说答对6道答错2道。不报正确率百分比。不说错因方向。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "essay-correction-medium",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=作文批改\n作文标题=春天来了，综合得分=68\nchildName=小雨",
+      "expected_output": "≤100字。提标题和分数。68分说'有些地方可以更好'。不说各维度评分。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "calculation-all-correct",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=计算训练\n练习标题=乘法口诀，答对题数=20，总题数=20，正确率=1.0\nchildName=豆豆",
+      "expected_output": "≤80字。全对强调正面。",
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "picture-writing-short",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=看图写话\n作文标题=撑起一片绿荫，学生创作段落数=3\nchildName=果果",
+      "expected_output": "≤50字。不评价质量。引导家长去看。",
+      "files": []
+    },
+    {
+      "id": 9,
+      "name": "weekly-report-with-progress",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=周报\n学习天数=5，上周学习天数=4，hasProgress=true，progressSummary='有2科的排名都提升了'\nchildName=天天",
+      "expected_output": "≤100字。提学习天数比上周多1天+融入progressSummary。不展开具体哪些科目。",
+      "files": []
+    },
+    {
+      "id": 10,
+      "name": "weekly-report-first-ever",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=周报\n学习天数=3，上周学习天数=null（首份周报），hasProgress=false\nchildName=果果",
+      "expected_output": "≤100字。首份周报。不提跨周对比。",
+      "files": []
+    },
+    {
+      "id": 11,
+      "name": "daily-report-new-mastered",
+      "prompt": "你是寒雪老师，把以下事实翻译成推送消息：\n\nreportType=数学学情日报\n今日做题量=28，今日学习时长=95分钟，今日正确率=0.78，新掌握PT数=2，突破中PT数=3\nchildName=小鉴",
+      "expected_output": "≤100字。末尾带'（截止今晚10点）'。不提PT/Z值，用'题型'。不提应用名。",
+      "files": []
+    }
+  ]
+}

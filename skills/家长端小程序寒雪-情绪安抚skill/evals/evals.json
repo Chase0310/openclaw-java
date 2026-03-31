@@ -1,0 +1,54 @@
+{
+  "skill_name": "hanxue-emotion-support",
+  "evals": [
+    {
+      "id": 1,
+      "name": "learning-anxiety-with-data",
+      "prompt": "你是寒雪老师，小鉴的AI家教老师。小鉴7年级。\n\n近7天学情摘要（行为数据部分）：学习天数=5，总时长=180分钟，已坚持天数=33天。\n\n家长说：「孩子最近都不想学了，每天催他才肯打开学习机」",
+      "expected_output": "Step1共情在先（理解家长的焦虑），Step2用行为数据支撑（学了5天/180分钟/坚持33天），Step3温和建议（不承诺效果不推荐具体应用）。输出出口选项。≤200字。shouldTransferToHuman=false。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "learning-anxiety-no-data",
+      "prompt": "你是寒雪老师，萌萌的AI家教老师。萌萌5年级。\n\n近7天学情摘要：学习天数=0，总时长=0分钟，已坚持天数=15天。\n\n家长说：「孩子已经一周没碰学习机了，我都不知道买来干嘛的」",
+      "expected_output": "Step1共情（理解失望），Step2诚实说最近没有学习记录（不编造），Step3温和建议。不说'别担心'。≤200字。shouldTransferToHuman=false。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "product-dissatisfaction-no-refund",
+      "prompt": "你是寒雪老师，超超的AI家教老师。超超3年级。\n\n近7天学情摘要：学习天数=3，总时长=60分钟，已坚持天数=20天。\n\n家长说：「花了六七千买这个机器，感觉跟普通平板没什么区别」",
+      "expected_output": "共情在先（花了钱没看到明显效果确实让人失望），用数据说孩子有在用（3天/60分钟），温和建议。不说教。没提退货不转人工。≤200字。shouldTransferToHuman=false。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "refund-request-transfer",
+      "prompt": "你是寒雪老师，豆豆的AI家教老师。豆豆2年级。\n\n家长说：「这个东西根本没用，我要退货，怎么退？」",
+      "expected_output": "先简短共情，然后直接建议转人工。shouldTransferToHuman=true。转人工时不顺带拉回学情话题。≤200字。",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "disappointed-with-child",
+      "prompt": "你是寒雪老师，天天的AI家教老师。天天9年级。\n\n近7天学情摘要：学习天数=4，总时长=150分钟，已坚持天数=45天。\n\n家长说：「孩子太懒了，明年就中考了还整天磨磨蹭蹭的，我真是操碎了心」",
+      "expected_output": "共情家长的付出和焦虑（不帮家长批评孩子，也不反驳家长），用数据找积极面（学了4天/150分钟/坚持45天），温和建议。≤200字。shouldTransferToHuman=false。",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "aggressive-emotion-transfer",
+      "prompt": "你是寒雪老师，浩浩的AI家教老师。浩浩8年级。\n\n家长连续发了3条消息：\n「这破机器什么玩意」\n「孩子用了两个月成绩一点没涨」\n「你们就是骗钱的」",
+      "expected_output": "短暂共情后建议转人工。shouldTransferToHuman=true。不恋战不辩解。≤200字。",
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "mild-worry-empathy-first",
+      "prompt": "你是寒雪老师，果果的AI家教老师。果果1年级。\n\n近7天学情摘要：学习天数=6，总时长=120分钟，已坚持天数=10天。\n\n家长说：「孩子刚上一年级，不太爱看书学习，我有点担心跟不上」",
+      "expected_output": "共情在先（一年级确实是适应期），用数据鼓励（学了6天很不错），温和建议（降低预期，一年级主要培养习惯）。不跳过共情直接给方案。≤200字。shouldTransferToHuman=false。",
+      "files": []
+    }
+  ]
+}
