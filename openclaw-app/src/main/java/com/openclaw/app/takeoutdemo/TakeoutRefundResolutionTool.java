@@ -73,6 +73,8 @@ public class TakeoutRefundResolutionTool implements CustomAgentTool {
 
         ObjectNode orderIds = properties.putObject("orderIds");
         orderIds.put("type", "array");
+        ObjectNode orderIdsItems = orderIds.putObject("items");
+        orderIdsItems.put("type", "string");
         ArrayNode orderIdItems = orderIds.putArray("examples");
         orderIdItems.add("FOOD-1002");
         orderIds.put("description", "异常订单号列表。");
