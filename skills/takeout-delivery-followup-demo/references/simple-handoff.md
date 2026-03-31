@@ -4,7 +4,7 @@
 
 ```json
 {
-  "orderId": "FOOD-1004"
+  "orderId": "<orderId>"
 }
 ```
 

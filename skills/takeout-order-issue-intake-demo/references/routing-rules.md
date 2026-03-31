@@ -11,46 +11,32 @@
 
 ```json
 {
-  "customerId": "USER-3001",
-  "timeRangeKey": "LAST_3_DAYS",
+  "customerId": "<customerId>",
+  "timeRangeKey": "<timeRangeKey>",
   "windowSummary": {
-    "timeRangeKey": "LAST_3_DAYS",
-    "timeRangeLabel": "最近三天",
-    "customerId": "USER-3001",
-    "totalOrders": 5,
-    "problemOrders": 3
+    "timeRangeKey": "<timeRangeKey>",
+    "timeRangeLabel": "<timeRangeLabel>",
+    "customerId": "<customerId>",
+    "totalOrders": 0,
+    "problemOrders": 0
   },
   "flaggedOrders": [
     {
-      "orderId": "FOOD-1002",
+      "orderId": "<orderId>",
       "issueType": "missing_item",
       "deliveryStatus": "delivered",
-      "amount": 29.0,
+      "amount": 0.0,
       "suggestedAction": "partial_refund"
-    },
-    {
-      "orderId": "FOOD-1003",
-      "issueType": "spilled_drink",
-      "deliveryStatus": "delivered",
-      "amount": 19.0,
-      "suggestedAction": "full_refund"
-    },
-    {
-      "orderId": "FOOD-1005",
-      "issueType": "wrong_item",
-      "deliveryStatus": "delivered",
-      "amount": 35.0,
-      "suggestedAction": "partial_refund_plus_coupon"
     }
   ],
-  "orderIds": ["FOOD-1002", "FOOD-1003", "FOOD-1005"],
+  "orderIds": ["<orderId>"],
   "resolutionPolicyContext": {
-    "maxAutoRefundPerOrder": 12.0,
+    "maxAutoRefundPerOrder": 0.0,
     "allowCouponForLateDelivery": true
   },
   "customerAfterSalesProfile": {
-    "customerId": "USER-3001",
-    "recentAfterSalesCount": 2,
+    "customerId": "<customerId>",
+    "recentAfterSalesCount": 0,
     "hasRepeatedIssues": false
   }
 }
@@ -64,6 +50,6 @@
 
 ```json
 {
-  "orderId": "FOOD-1004"
+  "orderId": "<orderId>"
 }
 ```
