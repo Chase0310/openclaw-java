@@ -5,6 +5,7 @@ import com.openclaw.agent.models.ModelProvider;
 import com.openclaw.agent.models.ModelProviderRegistry;
 import com.openclaw.agent.models.OpenAICompatibleProvider;
 import com.openclaw.agent.runtime.AgentRunner;
+import com.openclaw.agent.tools.CustomAgentTool;
 import com.openclaw.agent.tools.OpenClawToolFactory;
 import com.openclaw.agent.tools.ToolRegistry;
 import com.openclaw.agent.tools.builtin.ExecTool;
@@ -12,11 +13,12 @@ import com.openclaw.agent.tools.builtin.FileTools;
 import com.openclaw.common.config.ConfigService;
 import com.openclaw.common.config.OpenClawConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Spring configuration for Agent runtime beans.
+ * Agent 运行时相关 Bean 的 Spring 配置。
  */
 @Slf4j
 @Configuration
@@ -29,17 +31,30 @@ public class AgentBeanConfig {
     }
 
     @Bean
-    public ToolRegistry toolRegistry(ModelProviderRegistry modelProviderRegistry) {
+    public ToolRegistry toolRegistry(
+            ModelProviderRegistry modelProviderRegistry,
+            ObjectProvider<CustomAgentTool> customToolsProvider) {
         ToolRegistry registry = new ToolRegistry();
 
-        // Register built-in coding tools
+        // 注册内置编码工具
         registry.register(new ExecTool());
         registry.register(FileTools.readFile());
         registry.register(FileTools.writeFile());
         registry.register(FileTools.listDir());
         registry.register(FileTools.grepSearch());
 
-        // Register OpenClaw extension tools (browser, web, memory, message, etc.)
+        // 注册项目自定义的工具 Bean，让工作区里的业务代码可以把本地 Java
+        // 方法直接暴露给 Agent，而不需要继续改动核心运行时代码。
+        customToolsProvider.orderedStream().forEach(tool -> {
+            if (registry.get(tool.getName()).isPresent()) {
+                log.warn("跳过自定义工具 '{}'，因为同名工具已经注册", tool.getName());
+                return;
+            }
+            registry.register(tool);
+            log.info("已注册自定义工具 Bean: {}", tool.getName());
+        });
+
+        // 注册 OpenClaw 扩展工具（浏览器、网页、记忆、消息等）
         try {
             OpenClawConfig config = configService.loadConfig();
             var extensionTools = OpenClawToolFactory.createTools(
@@ -48,12 +63,12 @@ public class AgentBeanConfig {
                             .modelProviderRegistry(modelProviderRegistry)
                             .build());
             registry.registerAll(extensionTools);
-            log.info("Registered {} extension tools", extensionTools.size());
+            log.info("已注册 {} 个扩展工具", extensionTools.size());
         } catch (Exception e) {
-            log.warn("Failed to register extension tools: {}", e.getMessage());
+            log.warn("扩展工具注册失败: {}", e.getMessage());
         }
 
-        log.info("Registered {} total tools", registry.size());
+        log.info("总计已注册 {} 个工具", registry.size());
         return registry;
     }
 
@@ -61,19 +76,19 @@ public class AgentBeanConfig {
     public ModelProviderRegistry modelProviderRegistry() {
         ModelProviderRegistry registry = new ModelProviderRegistry();
 
-        // Load aliases and providers from config
+        // 从配置中加载模型别名和 provider
         try {
             OpenClawConfig config = configService.loadConfig();
             registry.loadAliasesFromConfig(config);
             registerProvidersFromConfig(registry, config);
         } catch (Exception e) {
-            log.debug("Config not loaded for model aliases: {}", e.getMessage());
+            log.debug("未能从配置中加载模型别名: {}", e.getMessage());
         }
 
-        // Register providers from environment variables (may override config-based ones)
+        // 从环境变量注册 provider（可覆盖配置中的同名 provider）
         registerProvidersFromEnv(registry);
 
-        log.info("Registered {} model providers, {} aliases",
+        log.info("已注册 {} 个模型 provider、{} 个别名",
                 registry.size(), registry.getAliases().size());
         return registry;
     }
@@ -95,7 +110,7 @@ public class AgentBeanConfig {
             String baseUrl = resolveBaseUrl(pc);
             ModelProvider provider = createProvider(id, apiKey, baseUrl);
             registry.register(provider);
-            log.info("Registered provider from config: {} (baseUrl={})", id, provider.getApiBaseUrl());
+            log.info("已从配置注册 provider: {} (baseUrl={})", id, provider.getApiBaseUrl());
         });
     }
 
@@ -103,7 +118,7 @@ public class AgentBeanConfig {
         registerEnvProvider(registry, "anthropic", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL");
         registerEnvProvider(registry, "openai", "OPENAI_API_KEY", "OPENAI_BASE_URL");
 
-        // Ollama (no API key needed)
+        // Ollama（无需 API Key）
         String ollamaUrl = System.getenv().getOrDefault("OLLAMA_BASE_URL", "http://127.0.0.1:11434/v1");
         registry.register(new OpenAICompatibleProvider("ollama", null, ollamaUrl));
     }
@@ -114,7 +129,7 @@ public class AgentBeanConfig {
 
         ModelProvider provider = createProvider(id, apiKey, System.getenv(urlEnv));
         registry.register(provider);
-        log.info("Registered provider from env: {} (baseUrl={})", id, provider.getApiBaseUrl());
+        log.info("已从环境变量注册 provider: {} (baseUrl={})", id, provider.getApiBaseUrl());
     }
 
     private static String resolveBaseUrl(OpenClawConfig.ProviderConfig pc) {
