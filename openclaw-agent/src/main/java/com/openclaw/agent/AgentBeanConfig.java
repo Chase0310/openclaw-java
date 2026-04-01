@@ -42,6 +42,11 @@ public class AgentBeanConfig {
         registry.register(FileTools.writeFile());
         registry.register(FileTools.listDir());
         registry.register(FileTools.grepSearch());
+        registry.registerAlias("bash", "exec");
+        registry.registerAlias("read", "read_file");
+        registry.registerAlias("write", "write_file");
+        registry.registerAlias("ls", "list_dir");
+        registry.registerAlias("grep", "grep_search");
 
         // 注册项目自定义的工具 Bean，让工作区里的业务代码可以把本地 Java
         // 方法直接暴露给 Agent，而不需要继续改动核心运行时代码。

@@ -21,6 +21,9 @@ public final class SkillTypes {
         public enum SkillSource {
                 BUNDLED("openclaw-bundled"),
                 MANAGED("openclaw-managed"),
+                AGENTS_PERSONAL("openclaw-agents-personal"),
+                AGENTS_PROJECT("openclaw-agents-project"),
+                WORKSPACE_LEGACY("openclaw-workspace-legacy"),
                 WORKSPACE("openclaw-workspace"),
                 EXTRA("openclaw-extra"),
                 PLUGIN("openclaw-plugin");
@@ -43,7 +46,8 @@ public final class SkillTypes {
         /**
          * A loaded skill definition.
          *
-         * @param name        skill name (directory name)
+         * @param name        prompt-facing skill name (frontmatter.name ?? dir name)
+         * @param legacyDirName skill directory name for migration fallback
          * @param description short description (from frontmatter)
          * @param source      where the skill was loaded from
          * @param filePath    absolute path to the SKILL.md file
@@ -52,6 +56,7 @@ public final class SkillTypes {
          */
         public record Skill(
                         String name,
+                        String legacyDirName,
                         String description,
                         SkillSource source,
                         String filePath,
@@ -179,6 +184,26 @@ public final class SkillTypes {
                         SkillInvocationPolicy invocation) {
         }
 
+        public record SkillEligibility(
+                        boolean disabled,
+                        boolean blockedByAllowlist,
+                        boolean osEligible,
+                        boolean binsEligible,
+                        boolean anyBinsEligible,
+                        boolean envEligible,
+                        boolean configEligible,
+                        boolean eligible,
+                        Map<String, Object> missing,
+                        List<String> configChecks) {
+        }
+
+        public enum SkillPromptMode {
+                FULL,
+                COMPACT,
+                TRUNCATED,
+                EMPTY
+        }
+
         // =========================================================================
         // Eligibility context (for remote platform checks)
         // =========================================================================
@@ -208,7 +233,13 @@ public final class SkillTypes {
                         String prompt,
                         List<SkillSummary> skills,
                         List<Skill> resolvedSkills,
-                        Integer version) {
+                        Integer version,
+                        SkillPromptMode promptMode,
+                        List<String> injectedSkillLocations,
+                        Integer discoveredCount,
+                        Integer eligibleCount,
+                        Integer promptEligibleCount,
+                        Integer injectedCount) {
         }
 
         /**
@@ -216,6 +247,30 @@ public final class SkillTypes {
          */
         public record SkillSummary(
                         String name,
+                        String skillKey,
+                        String legacyDirName,
+                        String filePath,
                         String primaryEnv) {
+        }
+
+        public record SkillStatus(
+                        String name,
+                        String legacyDirName,
+                        String skillKey,
+                        String description,
+                        String source,
+                        boolean bundled,
+                        String filePath,
+                        String baseDir,
+                        boolean always,
+                        boolean disabled,
+                        boolean blockedByAllowlist,
+                        boolean eligible,
+                        boolean userInvocable,
+                        boolean disableModelInvocation,
+                        SkillRequires requirements,
+                        Map<String, Object> missing,
+                        List<String> configChecks,
+                        List<SkillInstallSpec> install) {
         }
 }

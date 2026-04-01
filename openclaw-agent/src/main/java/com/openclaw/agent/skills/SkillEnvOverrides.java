@@ -29,8 +29,7 @@ public final class SkillEnvOverrides {
         List<EnvUpdate> updates = new ArrayList<>();
 
         for (SkillEntry entry : skills) {
-            String skillKey = SkillFrontmatterParser.resolveSkillKey(entry.skill(), entry);
-            Map<String, Object> skillConfig = SkillConfigResolver.resolveSkillConfig(config, skillKey);
+            Map<String, Object> skillConfig = SkillConfigResolver.resolveSkillConfig(config, entry);
             if (skillConfig == null)
                 continue;
 
@@ -83,7 +82,13 @@ public final class SkillEnvOverrides {
         List<EnvUpdate> updates = new ArrayList<>();
 
         for (SkillSummary skill : snapshot.skills()) {
-            Map<String, Object> skillConfig = SkillConfigResolver.resolveSkillConfig(config, skill.name());
+            Map<String, Object> skillConfig = SkillConfigResolver.resolveSkillConfig(config, skill.skillKey());
+            if (skillConfig == null && skill.name() != null) {
+                skillConfig = SkillConfigResolver.resolveSkillConfig(config, skill.name());
+            }
+            if (skillConfig == null && skill.legacyDirName() != null) {
+                skillConfig = SkillConfigResolver.resolveSkillConfig(config, skill.legacyDirName());
+            }
             if (skillConfig == null)
                 continue;
 

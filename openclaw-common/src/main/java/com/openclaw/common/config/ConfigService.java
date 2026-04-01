@@ -282,6 +282,19 @@ public class ConfigService {
         if (config.getAgents().getDefaults() == null) {
             config.getAgents().setDefaults(new OpenClawConfig.AgentDefaultsConfig());
         }
+        if (config.getSkills() == null) {
+            config.setSkills(new OpenClawConfig.SkillsConfig());
+        }
+        if (config.getSkills().getLimits() == null) {
+            OpenClawConfig.SkillsLimitsConfig limits = new OpenClawConfig.SkillsLimitsConfig();
+            limits.setMaxCandidatesPerRoot(300);
+            limits.setMaxSkillsLoadedPerSource(200);
+            limits.setMaxSkillsInPrompt(150);
+            limits.setMaxSkillsPromptChars(30000);
+            limits.setMaxSkillFileBytes(256000);
+            limits.setCompactWarningOverhead(150);
+            config.getSkills().setLimits(limits);
+        }
         return config;
     }
 }

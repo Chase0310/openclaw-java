@@ -1580,6 +1580,7 @@ public class OpenClawConfig {
         private Map<String, Object> entries;
         private Object allowBundled;
         private SkillLoadConfig load;
+        private SkillsLimitsConfig limits;
     }
 
     @Data
@@ -1587,6 +1588,16 @@ public class OpenClawConfig {
         private Boolean watch;
         private Long watchDebounceMs;
         private List<String> extraDirs;
+    }
+
+    @Data
+    public static class SkillsLimitsConfig {
+        private Integer maxCandidatesPerRoot;
+        private Integer maxSkillsLoadedPerSource;
+        private Integer maxSkillsInPrompt;
+        private Integer maxSkillsPromptChars;
+        private Integer maxSkillFileBytes;
+        private Integer compactWarningOverhead;
     }
 
     // ===== types.sandbox.ts =====

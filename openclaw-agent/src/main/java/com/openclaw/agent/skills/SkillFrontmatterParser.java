@@ -1,8 +1,10 @@
 package com.openclaw.agent.skills;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.yaml.snakeyaml.Yaml;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -16,6 +18,13 @@ import java.util.regex.Pattern;
 public class SkillFrontmatterParser {
 
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON5 = new ObjectMapper()
+            .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
+            .configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true)
+            .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
+            .configure(JsonParser.Feature.ALLOW_TRAILING_COMMA, true);
+    private static final Yaml YAML = new Yaml();
+    private static final List<String> LEGACY_MANIFEST_KEYS = List.of("pi", "manifest");
 
     /**
      * Regex to extract frontmatter block between --- delimiters at the start of a
@@ -51,31 +60,35 @@ public class SkillFrontmatterParser {
         }
 
         String block = m.group(1);
-        Map<String, String> result = new LinkedHashMap<>();
-        StringBuilder currentKey = null;
-        StringBuilder currentValue = null;
+        Map<String, String> fallback = parseLineFrontmatter(block);
 
-        for (String line : block.split("\\n")) {
-            Matcher kv = KV_PATTERN.matcher(line);
-            if (kv.matches()) {
-                // Flush previous key
-                if (currentKey != null && currentValue != null) {
-                    result.put(currentKey.toString(), currentValue.toString().trim());
-                }
-                currentKey = new StringBuilder(kv.group(1));
-                currentValue = new StringBuilder(kv.group(2));
-            } else if (currentKey != null && currentValue != null) {
-                // Continuation line (for multi-line values)
-                currentValue.append("\n").append(line);
+        try {
+            Object parsed = YAML.load(block);
+            if (!(parsed instanceof Map<?, ?> map)) {
+                return fallback;
             }
+            Map<String, String> result = new LinkedHashMap<>();
+            for (var entry : map.entrySet()) {
+                if (entry.getKey() == null) {
+                    continue;
+                }
+                String key = String.valueOf(entry.getKey()).trim();
+                if (key.isEmpty()) {
+                    continue;
+                }
+                Object value = entry.getValue();
+                String inline = fallback.get(key);
+                if (inline != null && !inline.isBlank() && (value instanceof Map<?, ?> || value instanceof List<?>)) {
+                    result.put(key, inline);
+                } else {
+                    result.put(key, stringifyFrontmatterValue(value));
+                }
+            }
+            return result;
+        } catch (Exception e) {
+            log.debug("Failed to parse skill YAML frontmatter: {}", e.getMessage());
         }
-
-        // Flush last key
-        if (currentKey != null && currentValue != null) {
-            result.put(currentKey.toString(), currentValue.toString().trim());
-        }
-
-        return result;
+        return fallback;
     }
 
     /**
@@ -109,11 +122,10 @@ public class SkillFrontmatterParser {
             return null;
 
         try {
-            JsonNode root = JSON.readTree(raw);
+            JsonNode root = JSON5.readTree(raw);
             if (root == null || !root.isObject())
                 return null;
 
-            // Look for openclaw metadata (try multiple keys for compat)
             JsonNode meta = findMetadataNode(root);
             if (meta == null || !meta.isObject())
                 return null;
@@ -126,7 +138,7 @@ public class SkillFrontmatterParser {
                     textOrNull(meta, "homepage"),
                     stringList(meta, "os"),
                     resolveRequires(meta),
-                    null);
+                    resolveInstall(meta));
         } catch (Exception e) {
             log.debug("Failed to parse skill metadata: {}", e.getMessage());
             return null;
@@ -155,13 +167,24 @@ public class SkillFrontmatterParser {
         return skill.name();
     }
 
+    public static String resolveSkillName(Map<String, String> frontmatter, String legacyDirName) {
+        String name = frontmatter.get("name");
+        if (name == null || name.isBlank()) {
+            return legacyDirName;
+        }
+        return name.trim();
+    }
+
     // =========================================================================
     // Helpers
     // =========================================================================
 
     private static JsonNode findMetadataNode(JsonNode root) {
-        // Try "openclaw", then legacy "pi" key
-        for (String key : List.of("openclaw", "pi", "manifest")) {
+        JsonNode openclaw = root.get("openclaw");
+        if (openclaw != null && openclaw.isObject()) {
+            return openclaw;
+        }
+        for (String key : LEGACY_MANIFEST_KEYS) {
             JsonNode node = root.get(key);
             if (node != null && node.isObject())
                 return node;
@@ -206,6 +229,67 @@ public class SkillFrontmatterParser {
                 stringList(req, "config"));
     }
 
+    private static List<SkillTypes.SkillInstallSpec> resolveInstall(JsonNode meta) {
+        JsonNode install = meta.get("install");
+        if (install == null) {
+            return List.of();
+        }
+
+        List<JsonNode> items = new ArrayList<>();
+        if (install.isArray()) {
+            install.forEach(items::add);
+        } else if (install.isObject()) {
+            items.add(install);
+        } else {
+            return List.of();
+        }
+
+        List<SkillTypes.SkillInstallSpec> resolved = new ArrayList<>();
+        for (JsonNode item : items) {
+            if (!item.isObject()) {
+                continue;
+            }
+            String kind = textOrNull(item, "kind");
+            if (kind == null) {
+                kind = textOrNull(item, "type");
+            }
+            if (kind == null) {
+                continue;
+            }
+            kind = kind.trim();
+            if (!Set.of("brew", "node", "go", "uv", "download").contains(kind)) {
+                continue;
+            }
+
+            String formula = textOrNull(item, "formula");
+            String pkg = textOrNull(item, "package");
+            if (pkg == null) {
+                pkg = textOrNull(item, "pkg");
+            }
+            String module = textOrNull(item, "module");
+            String url = textOrNull(item, "url");
+            if (!isValidInstall(kind, formula, pkg, module, url)) {
+                continue;
+            }
+
+            resolved.add(new SkillTypes.SkillInstallSpec(
+                    kind,
+                    textOrNull(item, "id"),
+                    textOrNull(item, "label"),
+                    stringList(item, "bins"),
+                    stringList(item, "os"),
+                    formula,
+                    pkg,
+                    module,
+                    url,
+                    textOrNull(item, "archive"),
+                    item.has("extract") ? item.get("extract").asBoolean() : null,
+                    item.has("stripComponents") ? item.get("stripComponents").asInt() : null,
+                    textOrNull(item, "targetDir")));
+        }
+        return resolved;
+    }
+
     private static boolean parseBool(String value, boolean fallback) {
         if (value == null || value.isBlank())
             return fallback;
@@ -214,6 +298,58 @@ public class SkillFrontmatterParser {
             case "true", "yes", "1", "on" -> true;
             case "false", "no", "0", "off" -> false;
             default -> fallback;
+        };
+    }
+
+    private static Map<String, String> parseLineFrontmatter(String block) {
+        Map<String, String> result = new LinkedHashMap<>();
+        StringBuilder currentKey = null;
+        StringBuilder currentValue = null;
+
+        for (String line : block.split("\\n")) {
+            Matcher kv = KV_PATTERN.matcher(line);
+            if (kv.matches()) {
+                if (currentKey != null && currentValue != null) {
+                    result.put(currentKey.toString(), currentValue.toString().trim());
+                }
+                currentKey = new StringBuilder(kv.group(1));
+                currentValue = new StringBuilder(kv.group(2));
+            } else if (currentKey != null && currentValue != null) {
+                currentValue.append("\n").append(line);
+            }
+        }
+
+        if (currentKey != null && currentValue != null) {
+            result.put(currentKey.toString(), currentValue.toString().trim());
+        }
+
+        return result;
+    }
+
+    private static String stringifyFrontmatterValue(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (value instanceof String s) {
+            return s.trim();
+        }
+        if (value instanceof Number || value instanceof Boolean) {
+            return String.valueOf(value);
+        }
+        try {
+            return JSON.writeValueAsString(value);
+        } catch (Exception e) {
+            return String.valueOf(value);
+        }
+    }
+
+    private static boolean isValidInstall(String kind, String formula, String pkg, String module, String url) {
+        return switch (kind) {
+            case "brew" -> formula != null && !formula.isBlank();
+            case "node", "uv" -> pkg != null && !pkg.isBlank();
+            case "go" -> module != null && !module.isBlank();
+            case "download" -> url != null && (url.startsWith("http://") || url.startsWith("https://"));
+            default -> false;
         };
     }
 }
