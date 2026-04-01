@@ -1,6 +1,12 @@
 ---
 name: hanxue-feature-guide
 description: 使用 hanxue_feature_guide_service 工具消费功能知识库 payload，回答小程序功能怎么用，并返回固定跳转入口。
+metadata: |
+  {
+    openclaw: {
+      skillKey: "hanxue-feature-guide"
+    }
+  }
 user-invocable: false
 ---
 

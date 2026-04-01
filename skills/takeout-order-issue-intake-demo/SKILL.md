@@ -1,5 +1,12 @@
 ---
+name: takeout-order-issue-intake-demo
 description: 使用 takeout_order_issue_intake 工具按时间范围筛查多笔外卖订单，并根据问题类型切换到退款处理或配送安抚
+metadata: |
+  {
+    openclaw: {
+      skillKey: "takeout-order-issue-intake-demo"
+    }
+  }
 ---
 
 # 外卖订单分诊演示

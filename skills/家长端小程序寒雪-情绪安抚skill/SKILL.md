@@ -1,6 +1,12 @@
 ---
 name: hanxue-emotion-support
 description: 使用 hanxue_emotion_support_service 工具消费情绪安抚 payload，先共情、再引用行为事实、最后给出温和下一步，并在需要时承接到学习规划或学情解读。
+metadata: |
+  {
+    openclaw: {
+      skillKey: "hanxue-emotion-support"
+    }
+  }
 user-invocable: false
 ---
 

@@ -1,5 +1,12 @@
 ---
+name: costom-skills-creator
 description: 将标准 skill 改造成符合业务 ToolResult payload 规范与 Skill 消费规范的业务 skill
+metadata: |
+  {
+    openclaw: {
+      skillKey: "costom-skills-creator"
+    }
+  }
 ---
 
 # 业务 Skill 改造器
@@ -12,6 +19,30 @@ description: 将标准 skill 改造成符合业务 ToolResult payload 规范与 
 - 当需要快速执行改造流程时，读取 `references/refactor-checklist.md`
 - 当需要套用统一章节模板时，读取 `references/section-template.md`
 - 当需要看现成业务化示例时，优先参考 `../takeout-order-issue-intake-demo/SKILL.md`、`../takeout-delivery-followup-demo/SKILL.md`、`../takeout-refund-resolution-demo/SKILL.md`
+
+Frontmatter 规范：
+- `openclaw-java/skills` 下的每个 skill 都必须在 `SKILL.md` 文件开头提供 frontmatter。
+- 最少要包含 `name`、`description` 和 `metadata.openclaw.skillKey`。
+- 推荐统一使用下面这个头，不要省略 `metadata`，也不要让 `skillKey` 与 `name` 不一致，除非有明确迁移需求。
+
+```md
+---
+name: my-skill
+description: One-line trigger description for when this skill should be read.
+metadata: |
+  {
+    openclaw: {
+      skillKey: "my-skill"
+    }
+  }
+---
+```
+
+改造要求：
+1. 如果目标 skill 缺少上述 frontmatter，先补齐，再继续改正文。
+2. `name` 优先使用稳定英文标识；如果现有 skill 已有既定名称，保持兼容，不要随意改名。
+3. `description` 必须是一句可触发识别的用途说明，不能留空。
+4. `metadata.openclaw.skillKey` 必须显式填写，并与当前 skill 的稳定标识一致。
 
 工作流程：
 1. 先识别目标 skill 依赖的 tool、action 和业务场景，不要先改文案。

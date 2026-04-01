@@ -1,6 +1,12 @@
 ---
 name: hanxue-report-switch
 description: 使用 hanxue_report_switch_service 工具消费报告定位 payload，帮助家长找到想看的那份报告，并把上下文承接给学情解读。
+metadata: |
+  {
+    openclaw: {
+      skillKey: "hanxue-report-switch"
+    }
+  }
 user-invocable: false
 ---
 

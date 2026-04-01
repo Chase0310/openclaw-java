@@ -1,6 +1,12 @@
 ---
 name: hanxue-report-interpretation
 description: 使用 hanxue_report_interpretation_service 工具消费当前报告的业务 payload，处理家长对当前报告的追问，并在需要时承接到错因分析、学习规划或切换报告。
+metadata: |
+  {
+    openclaw: {
+      skillKey: "hanxue-report-interpretation"
+    }
+  }
 user-invocable: false
 ---
 

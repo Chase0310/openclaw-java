@@ -1,6 +1,12 @@
 ---
 name: hanxue-error-analysis
 description: 使用 hanxue_error_analysis_service 工具消费错题分析 payload，给出保守、可解释的错因判断，并在需要时承接到学习规划。
+metadata: |
+  {
+    openclaw: {
+      skillKey: "hanxue-error-analysis"
+    }
+  }
 user-invocable: false
 ---
 

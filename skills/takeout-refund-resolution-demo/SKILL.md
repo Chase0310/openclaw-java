@@ -1,5 +1,12 @@
 ---
+name: takeout-refund-resolution-demo
 description: 使用 takeout_refund_resolution 工具处理从订单分诊步骤带入的复杂退款和赔付上下文
+metadata: |
+  {
+    openclaw: {
+      skillKey: "takeout-refund-resolution-demo"
+    }
+  }
 ---
 
 # 外卖退款处理演示

@@ -1,5 +1,12 @@
 ---
+name: takeout-delivery-followup-demo
 description: 使用 takeout_delivery_followup 工具处理从订单分诊步骤带入的简单配送安抚参数
+metadata: |
+  {
+    openclaw: {
+      skillKey: "takeout-delivery-followup-demo"
+    }
+  }
 ---
 
 # 外卖配送安抚演示

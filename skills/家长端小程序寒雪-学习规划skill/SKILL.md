@@ -1,6 +1,12 @@
 ---
 name: hanxue-learning-plan
 description: 使用 hanxue_learning_plan_service 工具消费学习规划 payload，生成定向、全局或温和版的学习路径建议。
+metadata: |
+  {
+    openclaw: {
+      skillKey: "hanxue-learning-plan"
+    }
+  }
 user-invocable: false
 ---
 

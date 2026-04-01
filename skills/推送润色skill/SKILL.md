@@ -1,6 +1,12 @@
 ---
 name: hanxue-push-polish
 description: 使用 hanxue_push_polish_service 工具消费推送摘要 payload，把结构化事实翻译成家长可读的推送消息。
+metadata: |
+  {
+    openclaw: {
+      skillKey: "hanxue-push-polish"
+    }
+  }
 user-invocable: false
 ---
 

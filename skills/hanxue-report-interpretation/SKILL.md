@@ -1,6 +1,12 @@
 ---
 name: hanxue-report-interpretation
 description: 寒雪老师的学情报告解读能力，处理家长对当前学情报告的追问，覆盖数学一对一辅学营、语文英语一对一、高中全科一对一、作业批改、作文批改、计算训练、看图写话、作文辅导、周报、数学学情日报等报告类型。
+metadata: |
+  {
+    openclaw: {
+      skillKey: "hanxue-report-interpretation"
+    }
+  }
 user-invocable: false
 ---
 

@@ -1,6 +1,12 @@
 ---
 name: hanxue-fallback
 description: 使用 hanxue_fallback_service 工具消费兜底分流 payload，在无法命中 A-F 明确场景时生成稳妥回复，并在需要时承接到其他 skill 或转人工。
+metadata: |
+  {
+    openclaw: {
+      skillKey: "hanxue-fallback"
+    }
+  }
 user-invocable: false
 ---
 
