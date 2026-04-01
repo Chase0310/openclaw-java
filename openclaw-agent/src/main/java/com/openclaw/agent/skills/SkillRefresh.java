@@ -163,25 +163,7 @@ public final class SkillRefresh {
     }
 
     private static List<String> resolveWatchPaths(String workspaceDir, OpenClawConfig config) {
-        List<String> paths = new ArrayList<>();
-        if (!workspaceDir.isBlank()) {
-            paths.add(Path.of(workspaceDir, "skills").toString());
-        }
-        // Managed skills dir
-        String configDir = System.getProperty("user.home") + "/.openclaw";
-        paths.add(Path.of(configDir, "skills").toString());
-
-        // Extra dirs from config
-        if (config != null && config.getSkills() != null
-                && config.getSkills().getLoad() != null
-                && config.getSkills().getLoad().getExtraDirs() != null) {
-            for (String dir : config.getSkills().getLoad().getExtraDirs()) {
-                if (dir != null && !dir.isBlank()) {
-                    paths.add(dir.trim());
-                }
-            }
-        }
-        return paths;
+        return new ArrayList<>(SkillLoader.resolveDiscoveryRootPaths(workspaceDir, config));
     }
 
     private static void startWatcher(String workspaceDir, List<String> watchPaths,

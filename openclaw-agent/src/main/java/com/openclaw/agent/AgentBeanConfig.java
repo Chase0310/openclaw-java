@@ -38,6 +38,11 @@ public class AgentBeanConfig {
         registry.register(FileTools.writeFile());
         registry.register(FileTools.listDir());
         registry.register(FileTools.grepSearch());
+        registry.registerAlias("bash", "exec");
+        registry.registerAlias("read", "read_file");
+        registry.registerAlias("write", "write_file");
+        registry.registerAlias("ls", "list_dir");
+        registry.registerAlias("grep", "grep_search");
 
         // Register OpenClaw extension tools (browser, web, memory, message, etc.)
         try {

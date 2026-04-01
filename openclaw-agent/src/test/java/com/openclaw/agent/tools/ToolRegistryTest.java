@@ -52,14 +52,24 @@ class ToolRegistryTest {
     @Test
     void toDefinitions_returnsCorrectStructure() {
         registry.register(new ExecTool());
+        registry.registerAlias("bash", "exec");
 
         List<Map<String, Object>> defs = registry.toDefinitions();
-        assertEquals(1, defs.size());
+        assertEquals(2, defs.size());
 
-        Map<String, Object> def = defs.get(0);
-        assertEquals("exec", def.get("name"));
-        assertNotNull(def.get("description"));
-        assertNotNull(def.get("input_schema"));
+        assertTrue(defs.stream().anyMatch(def -> "exec".equals(def.get("name"))));
+        assertTrue(defs.stream().anyMatch(def -> "bash".equals(def.get("name"))));
+    }
+
+    @Test
+    void alias_resolvesToCanonicalTool() {
+        registry.register(new ExecTool());
+        registry.registerAlias("bash", "exec");
+
+        Optional<AgentTool> tool = registry.get("bash");
+        assertTrue(tool.isPresent());
+        assertEquals("exec", registry.resolveCanonicalName("bash"));
+        assertTrue(registry.getToolNames().contains("bash"));
     }
 
     @Test

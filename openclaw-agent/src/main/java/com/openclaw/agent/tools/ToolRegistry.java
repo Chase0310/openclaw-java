@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 public class ToolRegistry {
 
     private final Map<String, AgentTool> tools = new ConcurrentHashMap<>();
+    private final Map<String, String> aliases = new ConcurrentHashMap<>();
 
     /**
      * Register a tool. Overwrites any existing tool with the same name.
@@ -22,6 +23,17 @@ public class ToolRegistry {
     public void register(AgentTool tool) {
         tools.put(tool.getName(), tool);
         log.debug("Registered tool: {}", tool.getName());
+    }
+
+    public void registerAlias(String aliasName, String canonicalToolName) {
+        if (aliasName == null || aliasName.isBlank() || canonicalToolName == null || canonicalToolName.isBlank()) {
+            return;
+        }
+        if (!tools.containsKey(canonicalToolName)) {
+            throw new IllegalArgumentException("Cannot alias missing tool: " + canonicalToolName);
+        }
+        aliases.put(aliasName, canonicalToolName);
+        log.debug("Registered tool alias: {} -> {}", aliasName, canonicalToolName);
     }
 
     /**
@@ -54,14 +66,32 @@ public class ToolRegistry {
      * Get a tool by name.
      */
     public Optional<AgentTool> get(String name) {
-        return Optional.ofNullable(tools.get(name));
+        AgentTool direct = tools.get(name);
+        if (direct != null) {
+            return Optional.of(direct);
+        }
+        String canonical = aliases.get(name);
+        if (canonical == null) {
+            return Optional.empty();
+        }
+        AgentTool delegate = tools.get(canonical);
+        return delegate == null ? Optional.empty() : Optional.of(new AliasTool(name, delegate));
+    }
+
+    public String resolveCanonicalName(String name) {
+        if (name == null) {
+            return null;
+        }
+        return aliases.getOrDefault(name, name);
     }
 
     /**
      * List all registered tool names.
      */
     public Set<String> getToolNames() {
-        return Collections.unmodifiableSet(tools.keySet());
+        LinkedHashSet<String> names = new LinkedHashSet<>(tools.keySet());
+        names.addAll(aliases.keySet());
+        return Collections.unmodifiableSet(names);
     }
 
     /**
@@ -76,15 +106,14 @@ public class ToolRegistry {
      * schema).
      */
     public List<Map<String, Object>> toDefinitions() {
-        return tools.values().stream()
-                .map(tool -> {
-                    Map<String, Object> def = new LinkedHashMap<>();
-                    def.put("name", tool.getName());
-                    def.put("description", tool.getDescription());
-                    def.put("input_schema", tool.getParameterSchema());
-                    return def;
-                })
-                .collect(Collectors.toList());
+        List<AgentTool> defs = new ArrayList<>(tools.values());
+        aliases.forEach((alias, canonical) -> {
+            AgentTool target = tools.get(canonical);
+            if (target != null) {
+                defs.add(new AliasTool(alias, target));
+            }
+        });
+        return defs.stream().map(this::toDefinition).collect(Collectors.toList());
     }
 
     /**
@@ -118,5 +147,43 @@ public class ToolRegistry {
      */
     public List<Map<String, Object>> toProviderDefinitions(String provider) {
         return ToolDefinitionAdapter.toProviderFormat(listAll(), provider);
+    }
+
+    private Map<String, Object> toDefinition(AgentTool tool) {
+        Map<String, Object> def = new LinkedHashMap<>();
+        def.put("name", tool.getName());
+        def.put("description", tool.getDescription());
+        def.put("input_schema", tool.getParameterSchema());
+        return def;
+    }
+
+    private static final class AliasTool implements AgentTool {
+        private final String aliasName;
+        private final AgentTool delegate;
+
+        private AliasTool(String aliasName, AgentTool delegate) {
+            this.aliasName = aliasName;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public String getName() {
+            return aliasName;
+        }
+
+        @Override
+        public String getDescription() {
+            return delegate.getDescription();
+        }
+
+        @Override
+        public com.fasterxml.jackson.databind.JsonNode getParameterSchema() {
+            return delegate.getParameterSchema();
+        }
+
+        @Override
+        public java.util.concurrent.CompletableFuture<ToolResult> execute(ToolContext context) {
+            return delegate.execute(context);
+        }
     }
 }

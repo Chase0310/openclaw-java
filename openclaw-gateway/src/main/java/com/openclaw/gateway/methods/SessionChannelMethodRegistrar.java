@@ -1,6 +1,7 @@
 package com.openclaw.gateway.methods;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.openclaw.agent.skills.SkillLoader;
 import com.openclaw.common.config.ConfigService;
 import com.openclaw.common.config.OpenClawConfig;
 import com.openclaw.common.model.AcpSession;
@@ -405,9 +406,15 @@ public class SessionChannelMethodRegistrar {
     // skills.status / skills.bins
     // =========================================================================
     private CompletableFuture<Object> handleSkillsStatus(JsonNode params, GatewayConnection conn) {
+        OpenClawConfig config = configService.loadConfig();
+        String agentId = textParam(params, "agentId", "default");
+        String workspaceDir = resolveAgentWorkspaceDir(config, agentId);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("ts", System.currentTimeMillis());
-        result.put("skills", List.of());
+        result.put("workspaceDir", workspaceDir);
+        result.put("managedSkillsDir", SkillLoader.resolveManagedSkillsDir());
+        result.put("limits", SkillLoader.resolveLimits(config));
+        result.put("skills", SkillLoader.buildSkillStatuses(workspaceDir, config));
         return CompletableFuture.completedFuture(result);
     }
 

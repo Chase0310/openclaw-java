@@ -13,6 +13,8 @@ import com.openclaw.agent.models.ModelProvider;
 import com.openclaw.agent.models.ModelProviderRegistry;
 import com.openclaw.agent.prompt.SystemPromptBuilder;
 import com.openclaw.agent.skills.SkillLoader;
+import com.openclaw.agent.skills.SkillTypes.Skill;
+import com.openclaw.agent.skills.SkillTypes.SkillSnapshot;
 import com.openclaw.agent.tools.AgentTool;
 import com.openclaw.agent.tools.ToolRegistry;
 import com.openclaw.common.config.OpenClawConfig;
@@ -38,6 +40,9 @@ import java.util.concurrent.CompletableFuture;
  */
 @Slf4j
 public class AgentRunner {
+
+    private record SkillReadMatch(String rawPath, String normalizedPath, String skillName) {
+    }
 
     /**
      * Listener for streaming agent execution events.
@@ -306,13 +311,23 @@ public class AgentRunner {
 
         // Build tool-aware system prompt (always include tool definitions)
         String skillsPrompt = null;
-        if (context.getConfig() != null) {
-            try {
-                skillsPrompt = SkillLoader.resolveSkillsPromptForRun(
-                        context.getCwd(), context.getConfig());
-            } catch (Exception e) {
-                log.debug("Skills prompt generation failed: {}", e.getMessage());
-            }
+        try {
+            SkillSnapshot skillsSnapshot = SkillLoader.resolveSkillSnapshotForRun(
+                    context.getCwd(), context.getConfig());
+            context.setSkillsSnapshot(skillsSnapshot);
+            skillsPrompt = skillsSnapshot.prompt();
+            log.info(
+                    "skills prompt built: runId={} workspace={} discovered={} eligible={} promptEligible={} injected={} promptMode={} locationMode=canonical-absolute names={}",
+                    context.getRunId() != null ? context.getRunId() : "unknown",
+                    context.getCwd(),
+                    skillsSnapshot.discoveredCount(),
+                    skillsSnapshot.eligibleCount(),
+                    skillsSnapshot.promptEligibleCount(),
+                    skillsSnapshot.injectedCount(),
+                    skillsSnapshot.promptMode(),
+                    skillsSnapshot.resolvedSkills().stream().map(Skill::name).toList());
+        } catch (Exception e) {
+            log.debug("Skills prompt generation failed: {}", e.getMessage());
         }
 
         String autoPrompt = SystemPromptBuilder.build(
@@ -578,6 +593,15 @@ public class AgentRunner {
         try {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             com.fasterxml.jackson.databind.JsonNode params = mapper.valueToTree(toolUse.getInput());
+            String canonicalToolName = toolRegistry.resolveCanonicalName(toolUse.getName());
+            SkillReadMatch skillReadMatch = resolveSkillReadMatch(canonicalToolName, params, context);
+            if (skillReadMatch != null && context.isSkillsTraceEnabled()) {
+                log.info("skill read normalized: runId={} raw={} normalized={} match={}",
+                        context.getRunId() != null ? context.getRunId() : "unknown",
+                        skillReadMatch.rawPath(),
+                        skillReadMatch.normalizedPath(),
+                        skillReadMatch.skillName());
+            }
 
             AgentTool.ToolContext toolCtx = AgentTool.ToolContext.builder()
                     .parameters(params)
@@ -613,6 +637,21 @@ public class AgentRunner {
                             .workspaceDir(context.getCwd())
                             .build());
 
+            if (skillReadMatch != null && context.isSkillsTraceEnabled()) {
+                if (result.isSuccess()) {
+                    log.info("skill read triggered: runId={} skill={} path={}",
+                            context.getRunId() != null ? context.getRunId() : "unknown",
+                            skillReadMatch.skillName(),
+                            skillReadMatch.normalizedPath());
+                } else {
+                    log.warn("skill read failed: runId={} skill={} path={} error={}",
+                            context.getRunId() != null ? context.getRunId() : "unknown",
+                            skillReadMatch.skillName(),
+                            skillReadMatch.normalizedPath(),
+                            result.getError());
+                }
+            }
+
             return result;
         } catch (Exception e) {
             log.error("Tool {} execution failed: {}", toolUse.getName(), e.getMessage(), e);
@@ -631,6 +670,29 @@ public class AgentRunner {
 
             return AgentTool.ToolResult.fail("Execution error: " + e.getMessage());
         }
+    }
+
+    private SkillReadMatch resolveSkillReadMatch(
+            String canonicalToolName,
+            com.fasterxml.jackson.databind.JsonNode params,
+            AgentRunContext context) {
+        if (!"read_file".equals(canonicalToolName) || params == null || context.getSkillsSnapshot() == null) {
+            return null;
+        }
+        String rawPath = params.path("path").asText(null);
+        if (rawPath == null || rawPath.isBlank()) {
+            return null;
+        }
+        String normalized = SkillLoader.resolveSkillReadPath(rawPath, null, context.getCwd());
+        if (normalized == null) {
+            return null;
+        }
+        for (Skill skill : context.getSkillsSnapshot().resolvedSkills()) {
+            if (normalized.equals(skill.filePath())) {
+                return new SkillReadMatch(rawPath, normalized, skill.name());
+            }
+        }
+        return null;
     }
 
     // --- Data types ---
@@ -662,10 +724,13 @@ public class AgentRunner {
         private int maxTurns = 25;
         private double temperature;
         private OpenClawConfig config;
+        private SkillSnapshot skillsSnapshot;
         private volatile boolean cancelled;
         /** Enable automatic compaction when history nears context limit. */
         @Builder.Default
         private boolean compactionEnabled = false;
+        @Builder.Default
+        private boolean skillsTraceEnabled = true;
         @Builder.Default
         private AgentEventListener listener = NOOP_LISTENER;
 

@@ -75,6 +75,26 @@ public final class SkillConfigResolver {
         return null;
     }
 
+    public static Map<String, Object> resolveSkillConfig(OpenClawConfig config, SkillEntry entry) {
+        if (entry == null) {
+            return null;
+        }
+        String primaryKey = SkillFrontmatterParser.resolveSkillKey(entry.skill(), entry);
+        Map<String, Object> resolved = resolveSkillConfig(config, primaryKey);
+        if (resolved != null) {
+            return resolved;
+        }
+        resolved = resolveSkillConfig(config, entry.skill().name());
+        if (resolved != null) {
+            return resolved;
+        }
+        String legacyDirName = entry.skill().legacyDirName();
+        if (legacyDirName != null && !legacyDirName.isBlank()) {
+            return resolveSkillConfig(config, legacyDirName);
+        }
+        return null;
+    }
+
     // ── Bundled allowlist ────────────────────────────────────────────
 
     /**
@@ -140,43 +160,53 @@ public final class SkillConfigResolver {
     @SuppressWarnings("unchecked")
     public static boolean shouldIncludeSkill(
             SkillEntry entry, OpenClawConfig config, SkillEligibilityContext eligibility) {
+        return evaluateSkill(entry, config, eligibility).eligible();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static SkillEligibility evaluateSkill(
+            SkillEntry entry, OpenClawConfig config, SkillEligibilityContext eligibility) {
 
         String skillKey = SkillFrontmatterParser.resolveSkillKey(entry.skill(), entry);
+        Map<String, Object> missing = new LinkedHashMap<>();
+        List<String> configChecks = new ArrayList<>();
 
-        // Disabled by config
+        boolean disabled = false;
+        boolean blockedByAllowlist = false;
         if (config != null) {
-            var skillConfig = resolveSkillConfig(config, skillKey);
+            var skillConfig = resolveSkillConfig(config, entry);
             if (skillConfig != null && Boolean.FALSE.equals(skillConfig.get("enabled"))) {
-                return false;
+                disabled = true;
             }
             List<String> allowBundled = resolveBundledAllowlist(config);
             if (!isBundledSkillAllowed(entry, allowBundled)) {
-                return false;
+                blockedByAllowlist = true;
             }
         }
 
-        // OS check
         List<String> osList = entry.metadata() != null ? entry.metadata().os() : null;
         List<String> remotePlatforms = eligibility != null && eligibility.remote() != null
                 ? eligibility.remote().platforms()
                 : List.of();
+        boolean osEligible = true;
         if (osList != null && !osList.isEmpty()) {
             boolean localMatch = osList.contains(resolveRuntimePlatform());
             boolean remoteMatch = remotePlatforms.stream().anyMatch(osList::contains);
-            if (!localMatch && !remoteMatch)
-                return false;
+            osEligible = localMatch || remoteMatch;
+            if (!osEligible) {
+                missing.put("os", osList);
+            }
         }
 
-        // Always flag
-        if (entry.metadata() != null && Boolean.TRUE.equals(entry.metadata().always())) {
-            return true;
-        }
-
-        // Required binaries
+        boolean binsEligible = true;
+        boolean anyBinsEligible = true;
+        boolean envEligible = true;
+        boolean configEligible = true;
         if (entry.metadata() != null && entry.metadata().requires() != null) {
             SkillRequires req = entry.metadata().requires();
 
             if (req.bins() != null && !req.bins().isEmpty()) {
+                List<String> missingBins = new ArrayList<>();
                 for (String bin : req.bins()) {
                     if (hasBinary(bin))
                         continue;
@@ -184,7 +214,11 @@ public final class SkillConfigResolver {
                             && eligibility.remote().hasBin() != null
                             && eligibility.remote().hasBin().test(bin))
                         continue;
-                    return false;
+                    missingBins.add(bin);
+                }
+                binsEligible = missingBins.isEmpty();
+                if (!binsEligible) {
+                    missing.put("bins", missingBins);
                 }
             }
 
@@ -193,18 +227,20 @@ public final class SkillConfigResolver {
                 boolean remoteAny = eligibility != null && eligibility.remote() != null
                         && eligibility.remote().hasAnyBin() != null
                         && Boolean.TRUE.equals(eligibility.remote().hasAnyBin().apply(req.anyBins()));
-                if (!localAny && !remoteAny)
-                    return false;
+                anyBinsEligible = localAny || remoteAny;
+                if (!anyBinsEligible) {
+                    missing.put("anyBins", req.anyBins());
+                }
             }
 
-            // Required env vars
             if (req.env() != null && !req.env().isEmpty()) {
+                List<String> missingEnv = new ArrayList<>();
                 for (String envName : req.env()) {
-                    String envValue = System.getenv(envName);
+                    String envValue = SkillEnvOverrides.getEnvWithOverrides(envName);
                     if (envValue != null && !envValue.isBlank())
                         continue;
                     if (config != null) {
-                        Map<String, Object> sc = resolveSkillConfig(config, skillKey);
+                        Map<String, Object> sc = resolveSkillConfig(config, entry);
                         if (sc != null) {
                             Map<String, String> envMap = (Map<String, String>) sc.get("env");
                             if (envMap != null && envMap.containsKey(envName))
@@ -215,20 +251,48 @@ public final class SkillConfigResolver {
                                 continue;
                         }
                     }
-                    return false;
+                    missingEnv.add(envName);
+                }
+                envEligible = missingEnv.isEmpty();
+                if (!envEligible) {
+                    missing.put("env", missingEnv);
                 }
             }
 
-            // Required config paths
             if (req.config() != null && !req.config().isEmpty()) {
+                List<String> missingConfig = new ArrayList<>();
                 for (String configPath : req.config()) {
-                    if (!isConfigPathTruthy(config, configPath))
-                        return false;
+                    configChecks.add(configPath);
+                    if (!isConfigPathTruthy(config, configPath)) {
+                        missingConfig.add(configPath);
+                    }
+                }
+                configEligible = missingConfig.isEmpty();
+                if (!configEligible) {
+                    missing.put("config", missingConfig);
                 }
             }
         }
 
-        return true;
+        boolean eligibleResult = !disabled
+                && !blockedByAllowlist
+                && osEligible
+                && binsEligible
+                && anyBinsEligible
+                && envEligible
+                && configEligible;
+
+        return new SkillEligibility(
+                disabled,
+                blockedByAllowlist,
+                osEligible,
+                binsEligible,
+                anyBinsEligible,
+                envEligible,
+                configEligible,
+                eligibleResult,
+                Collections.unmodifiableMap(missing),
+                List.copyOf(configChecks));
     }
 
     // ── Helpers ─────────────────────────────────────────────────────
